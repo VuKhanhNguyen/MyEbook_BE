@@ -20,7 +20,7 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async findOne(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email }).exec();
+  async findOne(username: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ username }).exec();
   }
 }

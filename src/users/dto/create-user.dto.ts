@@ -4,9 +4,19 @@ import {
   IsString,
   MinLength,
   Matches,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateUserDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Username is required' })
+  @Matches(/^[a-zA-Z0-9]+$/, {
+    message:
+      'Username must contain only letters and numbers (no special characters)',
+  })
+  @MaxLength(16, { message: 'Username cannot exceed 16 characters' })
+  username: string;
+
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email is required' })
   email: string;
