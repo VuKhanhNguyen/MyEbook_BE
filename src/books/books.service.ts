@@ -10,23 +10,47 @@ import { join } from 'path';
 export class BooksService {
   constructor(@InjectModel(Book.name) private bookModel: Model<BookDocument>) {}
 
+  private fixUtf8(str: string): string {
+    try {
+      // Check if string is already valid UTF-8, if so return it.
+      // This latin1->utf8 conversion is a heuristic for Multer/Busboy issues.
+      return Buffer.from(str, 'latin1').toString('utf8');
+    } catch (e) {
+      return str;
+    }
+  }
+
   async create(
     file: Express.Multer.File,
     createBookDto: CreateBookDto,
+    user: any,
   ): Promise<Book> {
+    const originalName = this.fixUtf8(file.originalname);
+    const title = createBookDto.title
+      ? this.fixUtf8(createBookDto.title)
+      : originalName;
+
+    // Fallback: If title is empty/null, use originalName. If that's also empty (rare), use 'Untitled'
+    const finalTitle =
+      title && title.trim().length > 0 ? title : originalName || 'Untitled';
+
     const newBook = new this.bookModel({
-      title: createBookDto.title || file.originalname,
-      originalName: file.originalname,
+      title: finalTitle,
+      originalName,
       path: file.filename, // Storing filename only, relative to uploads root
       mimeType: file.mimetype,
-      format: this.detectFormat(file.originalname),
+      format: this.detectFormat(originalName),
       size: file.size,
+      owner: user.userId,
     });
     return newBook.save();
   }
 
-  async findAll(): Promise<Book[]> {
-    return this.bookModel.find().sort({ createdAt: -1 }).exec();
+  async findAll(user: any): Promise<Book[]> {
+    return this.bookModel
+      .find({ owner: user.userId })
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async findOne(id: string): Promise<Book> {
@@ -37,8 +61,12 @@ export class BooksService {
     return book;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, user: any): Promise<void> {
     const book = await this.findOne(id);
+
+    if (book.owner?.toString() !== user.userId) {
+      throw new NotFoundException(`Book with ID ${id} not found`);
+    }
 
     // 1. Remove from DB
     await this.bookModel.findByIdAndDelete(id).exec();
