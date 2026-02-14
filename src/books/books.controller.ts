@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { User } from '../users/schemas/user.schema';
 import { diskStorage } from 'multer';
@@ -83,5 +84,21 @@ export class BooksController {
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req) {
     return this.booksService.remove(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/favorite')
+  toggleFavorite(@Param('id') id: string, @Request() req) {
+    return this.booksService.toggleFavorite(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/progress')
+  updateProgress(
+    @Param('id') id: string,
+    @Body() updateProgressDto: UpdateProgressDto,
+    @Request() req,
+  ) {
+    return this.booksService.updateProgress(id, updateProgressDto, req.user);
   }
 }

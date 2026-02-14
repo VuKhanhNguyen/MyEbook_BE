@@ -25,8 +25,27 @@ export class Book {
   @Prop()
   size: number;
 
+  @Prop({ default: false })
+  isFavorite: boolean;
+
+  @Prop({ default: 0 })
+  progress: number;
+
+  @Prop()
+  lastLocation: string;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   owner: User;
 }
 
+// Configure JSON transformation
 export const BookSchema = SchemaFactory.createForClass(Book);
+
+BookSchema.set('toJSON', {
+  transform: (doc, ret: any) => {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
